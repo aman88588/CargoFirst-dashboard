@@ -92,7 +92,7 @@ const Signup = () => {
               <Input
                 id="password"
                 type="password"
-                placeholder="Min. 6 characters (letter + number)"
+                placeholder="Min. 6 characters (e.g. Aman@123)"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 required
@@ -107,7 +107,7 @@ const Signup = () => {
               <Input
                 id="role"
                 type="text"
-                placeholder="e.g., recruiter, admin, manager"
+                placeholder="e.g., Software Engineer, UI/UX Designer, Product Manager, HR"
                 value={formData.role}
                 onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                 required
