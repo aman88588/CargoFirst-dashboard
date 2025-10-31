@@ -1,154 +1,165 @@
-Build a frontend dashboard application using React + Tailwind CSS + React Router + Axios + Recharts that connects to the deployed backend
-👉 https://cargofirst-dashboard-productio-backend.up.railway.app
+## CargoFirst Dashboard
 
-🔐 Authentication Flow
-Start by creating two pages:
+Modern full‑stack dashboard for managing user authentication and job postings. Built with React + Vite + TypeScript on the frontend and Express + MongoDB on the backend, secured with JWT‑based authentication.
 
-Signup Page → POST /api/v1/auth/signup
+### Tech Stack
+- **Frontend**: React 18, TypeScript, Vite, React Router, @tanstack/react-query, Tailwind CSS, shadcn/ui (Radix UI), Axios
+- **Backend**: Node.js, Express, Mongoose, JSON Web Tokens (JWT), bcrypt, CORS, dotenv
+- **Database**: MongoDB (Mongoose ODM)
+- **Tooling**: ESLint, Nodemon, Vite
 
-Request body:
+### Key Features
+- **Authentication**: Signup, Signin, JWT issuance and storage, protected routes
+- **Profile**: Fetch authenticated user profile
+- **Job Management**: Create, list (with filters, sort, pagination), update, delete job postings
+- **Secure APIs**: Role and identity stored in JWT; backend middleware validates Bearer tokens
+- **DX**: React Query for data fetching, shadcn/ui components, clean project structure
 
-{
-  "email": "user@example.com",
-  "password": "Test1234",
-  "role": "recruiter",
-  "address": "123 Main Street, New York"
-}
-Signin Page → POST /api/v1/auth/signin
+---
 
-Request body:
+## Getting Started
 
-{
-  "email": "user@example.com",
-  "password": "Test1234"
-}
-On successful signup/signin, store the returned JWT token in localStorage and redirect the user to the Dashboard page.
+### Prerequisites
+- Node.js 18+
+- npm (or bun/pnpm if desired)
+- MongoDB database (local or hosted)
 
-If the user is already logged in, redirect them to the Dashboard automatically.
+### Environment Variables
+Create a `.env` file in `backend/` with:
 
-🧭 Dashboard Layout
-Once signed in, the user lands on a Dashboard Page with a clean and light UI —
-Use a white + light blue color scheme, soft shadows, rounded corners, and a minimal, modern layout.
+```bash
+PORT=5000
+NODE_ENV=development
+DEV_MONGODB_URI=<your-mongodb-secret>
+JWT_SECRET_KEY=your-strong-secret
+```
 
-The layout should have:
+### Install Dependencies
 
-Left Sidebar Navigation (sticky)
+```bash
+# Backend
+cd backend
+npm install
 
-Job Posted
+# Frontend (in a separate terminal)
+cd ../frontend
+npm install
+```
 
-Profile
+### Run Locally
 
-Customer Analysis
+```bash
+# Start backend (http://localhost:5000)
+cd backend
+npm run dev
 
-Logout
+# Start frontend (http://localhost:5173 by default)
+cd ../frontend
+npm run dev
+```
 
-Main Content Area
+If your backend runs on a different URL/port in development, update the frontend API base URL in `frontend/src/lib/api.ts`.
 
-Changes dynamically based on selected menu option.
+---
 
-💼 1. Job Posted Page
-When the user clicks Job Posted, show:
+## API Overview
+Base URL: `/api/v1`
 
-Job Post Form
-In the center of the page, display a form with these inputs:
+### Auth
+- `POST /auth/signup`
+  - Body: `{ email, password, role, address? }`
+  - Returns: `{ success, message, data: { userId, email, role, address, memberSince, token } }`
+- `POST /auth/signin`
+  - Body: `{ email, password }`
+  - Returns: `{ success, message, data: { userId, email, role, address, memberSince, token } }`
+- `GET /auth/profile` (protected)
+  - Header: `Authorization: Bearer <jwt>`
+  - Returns: `{ success, message, data: { userId, email, role, address, memberSince } }`
 
+### Jobs (protected)
+- `POST /dashboard/create`
+  - Body: `{ jobTitle, jobDescription, lastDateToApply, companyName }`
+  - Validates future date for `lastDateToApply`
+- `PUT /dashboard/update/:id`
+  - Body: optional subset of `{ jobTitle, jobDescription, lastDateToApply, companyName }`
+- `DELETE /dashboard/delete/:id`
+- `GET /dashboard/list`
+  - Query: `page`, `limit`, `companyName`, `jobTitle`, `sortBy`, `order`
+  - Returns: `{ jobs, pagination: { currentPage, totalPages, totalJobs, jobsPerPage } }`
 
-{
-  "jobTitle": "Senior Full Stack Developer",
-  "jobDescription": "We are looking for an experienced Full Stack Developer proficient in React, Node.js, and MongoDB.",
-  "lastDateToApply": "2025-12-31",
-  "companyName": "Tech Innovations Inc"
-}
-Submit → POST /api/v1/dashboard/create
+### Auth & Authorization Flow
+- Backend issues a JWT on signup/signin using `JWT_SECRET_KEY` and 24h expiry.
+- Frontend stores the token in `localStorage` and adds `Authorization: Bearer <token>` via an Axios interceptor.
+- Protected backend routes use `AuthMiddleware` to verify and decode JWT (`userId`, `email`, `role`) and attach `req.user`.
+- Frontend routes under `/dashboard` are wrapped by `ProtectedRoute` which redirects to `/signin` when not authenticated.
 
-Use JWT token for authorization (Authorization: Bearer <token>).
+---
 
-Below the Form:
-Display a Job History List of all jobs using:
-GET /api/v1/dashboard/list
+## Frontend
 
-Each job card should have:
+### Highlights
+- Routing: `/`, `/signup`, `/signin`, `/dashboard`, `/dashboard/profile`, `/dashboard/analysis`
+- Providers: React Query, Auth Context, Tooltip, Toasters
+- Protected Layout: `DashboardLayout` behind `ProtectedRoute`
 
-Job title
+### Config
+- API base URL is set in `frontend/src/lib/api.ts`.
 
-Company name
+---
 
-Last date to apply
+## Backend
 
-Buttons: Edit and Delete
+### Structure
+- `server.js`: Express app, middleware, route mounting, DB connection
+- `src/database/db.connect.js`: Mongoose connect using `DEV_MONGODB_URI`
+- `src/middlewares/auth.middleware.js`: JWT verification (Bearer token)
+- `src/controllers/*`: Auth and Job CRUD controllers
+- `src/models/*`: `users`, `jobs` schemas
+- `src/routers/v1/*`: `/auth` and `/dashboard` route modules
 
-Update → PUT /api/v1/dashboard/update/:id
+### Scripts
+```bash
+npm run dev   # nodemon
+npm start     # node server.js
+```
 
-Delete → DELETE /api/v1/dashboard/delete/:id
+---
 
-Editing a job should prefill the form.
+## Deployment
+- **Backend**: Railway (configured base URL used by frontend)
+  - Example used in code: `https://cargofirst-dashboard-productio-backend.up.railway.app/api/v1`
+- **Frontend**: Any static host (Vercel, Netlify, Cloudflare Pages). Build with `npm run build` and deploy `dist/`.
 
-👤 2. Profile Page
-When the user clicks Profile, show their profile data from:
-GET /api/v1/auth/profile
+Update the frontend API base URL per environment (dev/staging/prod).
 
-Display:
+---
 
-Email
+## Folder Structure
+```text
+cargofirst-dashboard/
+├─ backend/
+│  ├─ server.js
+│  └─ src/
+│     ├─ controllers/
+│     ├─ database/
+│     ├─ middlewares/
+│     ├─ models/
+│     └─ routers/
+└─ frontend/
+   ├─ index.html
+   └─ src/
+      ├─ components/
+      ├─ contexts/
+      ├─ lib/
+      ├─ pages/
+      └─ App.tsx
+```
 
-Role
+---
 
-Address
+## A Special Note
 
-Design the profile in a card format with light colors and subtle shadow.
+Thank you for giving me the opportunity to work on this project and for taking the time to review it. I sincerely appreciate your consideration and the effort you’ve put into evaluating my work.
+I’m truly excited about the possibility of contributing further and look forward to hearing your feedback.
 
-📊 3. Customer Analysis Page
-When the user clicks Customer Analysis, display dummy analytical data using Recharts or Chart.js.
-
-Example:
-
-Pie chart: Distribution of job roles
-
-Bar chart: Number of jobs posted per month
-
-Keep the colors light and smooth — blue, sky, teal, white.
-
-🚪 4. Logout Flow
-When the user clicks Logout, show a confirmation modal:
-
-Text:
-
-"Are you sure you want to log out?"
-
-Buttons:
-
-Cancel (closes modal)
-
-Logout (clears localStorage token and redirects to Signin page)
-
-🧩 Tech Stack & Styling
-React Router DOM → for navigation
-
-Axios → for backend API calls
-
-Recharts → for data visualization
-
-Tailwind CSS → for modern and responsive UI
-
-SweetAlert2 or ShadCN UI Modal → for logout confirmation
-
-Use JWT Token from localStorage for all /api/v1/dashboard/* and /api/v1/auth/profile routes
-
-🎨 Design Notes
-Light theme (white + sky blue + soft gray + touch of navy for contrast)
-
-Rounded corners (rounded-2xl)
-
-Soft shadows for cards
-
-Use icons from lucide-react or react-icons
-
-Dashboard layout should be responsive and modern
-
-
-
-Add loading spinners when API calls are in progress.
-
-Show toast notifications on job creation, update, or delete.
-
-Protect dashboard routes using a PrivateRoute wrapper that checks for JWT token.
+**The End**
